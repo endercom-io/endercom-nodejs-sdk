@@ -65,7 +65,7 @@ export class Agent {
    * @returns Response string
    */
   private defaultMessageHandler(message: Message): string {
-    console.log(`Received: ${message.content}`);
+    console.log(`received: ${message.content}`);
     return `Echo: ${message.content}`;
   }
 
