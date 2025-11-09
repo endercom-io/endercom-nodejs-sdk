@@ -13,6 +13,7 @@ export interface Message {
   request_id: string;
   created_at: string;
   agent_id?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface AgentOptions {
@@ -84,7 +85,14 @@ export class Agent {
       if (response.ok) {
         const data = await response.json() as any;
         if (data.success && data.data?.messages) {
-          const messages: Message[] = data.data.messages;
+          const messages: Message[] = data.data.messages.map((msg: any) => ({
+            id: msg.id,
+            content: msg.content,
+            request_id: msg.request_id,
+            created_at: msg.created_at,
+            agent_id: msg.agent_id,
+            metadata: msg.metadata || {},
+          }));
           for (const message of messages) {
             await this.handleMessage(message);
           }
@@ -113,10 +121,49 @@ export class Agent {
         responseContent = await responseContent;
       }
 
-      // Send response
-      await this.respondToMessage(message.request_id, responseContent);
+      // Check if there's a response_url in metadata (for talk endpoint)
+      if (message.metadata && message.metadata.response_url) {
+        await this.respondViaHttp(
+          message.metadata.response_url,
+          message.metadata.request_id || message.request_id,
+          responseContent
+        );
+      } else {
+        // Send response via normal message queue
+        await this.respondToMessage(message.request_id, responseContent);
+      }
     } catch (error) {
       console.error('Error handling message:', error);
+    }
+  }
+
+  /**
+   * Send a response via HTTP POST to a response URL (for talk endpoint).
+   * 
+   * @param responseUrl The URL to POST the response to
+   * @param requestId The request ID
+   * @param content The response content
+   */
+  private async respondViaHttp(responseUrl: string, requestId: string, content: string): Promise<void> {
+    try {
+      const payload = {
+        request_id: requestId,
+        content: content
+      };
+
+      const response = await fetch(responseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        console.error(`HTTP response error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Network error sending HTTP response:', error);
     }
   }
 
@@ -180,6 +227,60 @@ export class Agent {
     } catch (error) {
       console.error('Error sending message:', error);
       return false;
+    }
+  }
+
+  /**
+   * Send a message to a specific agent using the talk endpoint and optionally wait for response.
+   * 
+   * @param targetAgentId Target agent ID
+   * @param content Message content
+   * @param awaitResponse Whether to wait for response (default: true)
+   * @param timeout Timeout in milliseconds (default: 60000 = 60 seconds)
+   * @returns Response content if awaitResponse is true, null otherwise
+   */
+  async talkToAgent(
+    targetAgentId: string,
+    content: string,
+    awaitResponse: boolean = true,
+    timeout: number = 60000
+  ): Promise<string | null> {
+    try {
+      const payload = {
+        content: content,
+        await: awaitResponse,
+        timeout: timeout
+      };
+
+      const response = await fetch(`${this.baseUrl}/api/agents/${targetAgentId}/talk`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        console.error(`Talk endpoint error: ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json() as any;
+      if (!data.success) {
+        console.error(`Talk endpoint error: ${data.error}`);
+        return null;
+      }
+
+      // If awaitResponse is true, return the response content
+      if (awaitResponse && data.data && data.data.response) {
+        return data.data.response.content;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error talking to agent:', error);
+      return null;
     }
   }
 
