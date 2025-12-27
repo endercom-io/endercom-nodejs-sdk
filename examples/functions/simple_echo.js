@@ -4,7 +4,7 @@
  * Demonstrates the simplest possible Endercom agent function.
  */
 
-const { AgentFunction } = require('../../dist/index.js');
+const { AgentFunction } = require('../index.js');
 
 // Create a simple function that echoes back whatever it receives
 const echoFunction = new AgentFunction({

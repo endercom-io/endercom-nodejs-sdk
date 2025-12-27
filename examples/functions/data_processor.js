@@ -4,7 +4,7 @@
  * Demonstrates data processing capabilities.
  */
 
-const { AgentFunction } = require('../../dist/index.js');
+const { AgentFunction } = require('../index.js');
 
 // Create a data processing function
 const dataProcessor = new AgentFunction({

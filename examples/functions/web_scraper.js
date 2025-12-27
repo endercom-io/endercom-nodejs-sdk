@@ -4,7 +4,7 @@
  * Demonstrates web scraping and content extraction.
  */
 
-const { AgentFunction } = require('../../dist/index.js');
+const { AgentFunction } = require('../index.js');
 const axios = require('axios');
 
 // Create a web scraping function
