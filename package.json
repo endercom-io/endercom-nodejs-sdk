@@ -1,6 +1,6 @@
 {
   "name": "endercom",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Node.js SDK for Endercom agent communication platform with server wrapper functionality",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

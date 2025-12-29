@@ -75,6 +75,8 @@ export class Agent {
   private messageHandler?: MessageHandler;
   private running: boolean = false;
   private pollInterval?: NodeJS.Timeout;
+  private agentsCache: any[] = [];
+  private agentsCacheTime: number = 0;
 
   // Server wrapper properties
   private app?: any;
@@ -106,6 +108,42 @@ export class Agent {
   private defaultMessageHandler(message: Message): string {
     console.log(`received: ${message.content}`);
     return `Echo: ${message.content}`;
+  }
+
+  /**
+   * Get list of agents in the frequency, using cache if available.
+   * 
+   * @param forceRefresh Whether to force refresh the cache
+   * @returns List of agents
+   */
+  async getAgents(forceRefresh: boolean = false): Promise<any[]> {
+    const currentTime = Date.now();
+    // Use cache if valid (60 seconds TTL)
+    if (!forceRefresh && this.agentsCache.length > 0 && (currentTime - this.agentsCacheTime < 60000)) {
+      return this.agentsCache;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/${this.frequencyId}/agents`, {
+        headers: {
+          'Authorization': `Bearer ${this.frequencyApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json() as any;
+        if (data.success && data.data && data.data.agents) {
+          this.agentsCache = data.data.agents;
+          this.agentsCacheTime = currentTime;
+          return this.agentsCache;
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      return [];
+    }
   }
 
   /**
@@ -287,6 +325,68 @@ export class Agent {
     timeout: number = 60000
   ): Promise<string | null> {
     try {
+      // 1. Try decentralized/direct routing first
+      try {
+        const agents = await this.getAgents();
+        const target = agents.find((a: any) => a.agent_id === targetAgentId);
+        let endpoint = target ? target.endpoint : null;
+
+        if (endpoint) {
+          endpoint = endpoint.replace(/\/$/, '');
+          // Ensure endpoint ends with /a2a
+          if (!endpoint.endsWith('/a2a')) {
+            endpoint += '/a2a';
+          }
+
+          // Send direct A2A request
+          const directResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.frequencyApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              content: content,
+              timeout: timeout
+            })
+          });
+
+          if (directResponse.ok) {
+            const contentType = directResponse.headers.get('content-type') || '';
+            
+            // Handle JSON response
+            if (contentType.includes('application/json')) {
+              const data = await directResponse.json() as any;
+              
+              // Handle SDK wrapper response {success: true, response: ...}
+              if (data && typeof data === 'object' && 'response' in data) {
+                if (awaitResponse) {
+                  return typeof data.response === 'string' ? data.response : JSON.stringify(data.response);
+                }
+                return null;
+              }
+              
+              // Handle raw JSON response
+              if (awaitResponse) {
+                return JSON.stringify(data);
+              }
+              return null;
+            } 
+            
+            // Handle plain text response
+            if (awaitResponse) {
+              return await directResponse.text();
+            }
+            return null;
+          } else {
+            console.warn(`Direct routing failed (${directResponse.status}), falling back to platform`);
+          }
+        }
+      } catch (e) {
+        console.warn('Direct routing error, falling back to platform:', e);
+      }
+
+      // 2. Fallback to Platform API Routing
       const payload = {
         content: content,
         await: awaitResponse,

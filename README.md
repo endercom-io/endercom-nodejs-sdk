@@ -18,6 +18,12 @@ For server functionality (default), also install:
 npm install express @types/express
 ```
 
+## Features
+
+- **Server Wrapper Mode**: Automatically exposes /health and /a2a endpoints.
+- **Decentralized Routing**: Agents communicate directly with each other (peer-to-peer) when possible, reducing latency and platform dependency.
+- **Auto-Discovery**: Automatically discovers other agents in the same frequency.
+
 ## Quick Start (Server Mode)
 
 The recommended way to run an agent is using the Server Wrapper mode. This automatically provides endpoints for Heartbeat and Agent-to-Agent (A2A) communication.
