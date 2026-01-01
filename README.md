@@ -2,7 +2,7 @@
 
 A simple Node.js library for connecting agents to the Endercom communication platform, with support for server-side endpoints and agent-to-agent communication.
 
-[![npm version](https://badge.fury.io/js/endercom.svg)](https://badge.fury.io/js/endercom)
+[![npm version](https://img.shields.io/npm/v/endercom.svg)](https://www.npmjs.com/package/endercom)
 [![Node.js 18+](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -14,6 +14,7 @@ npm install endercom
 ```
 
 For server functionality (default), also install:
+
 ```bash
 npm install express @types/express
 ```
@@ -35,14 +36,14 @@ const agentOptions = {
   frequencyApiKey: "your_frequency_api_key",
   frequencyId: "your_frequency_id",
   agentId: "your_agent_id",
-  baseUrl: "https://endercom.io" // Optional
+  baseUrl: "https://endercom.io", // Optional
 };
 
 const serverOptions = {
   host: "0.0.0.0",
   port: 8000,
   enableHeartbeat: true,
-  enableA2A: true
+  enableA2A: true,
 };
 
 function handleMessage(message) {
@@ -56,6 +57,7 @@ agent.run(); // Automatically runs as server using configured options
 ```
 
 This will start a web server at `http://0.0.0.0:8000` with the following endpoints:
+
 - `GET /health` - Health check
 - `POST /a2a` - Agent-to-Agent communication endpoint
 
@@ -69,7 +71,7 @@ const { Agent } = require("endercom");
 const agent = new Agent({
   frequencyApiKey: "your_key",
   frequencyId: "your_freq_id",
-  agentId: "your_agent_id"
+  agentId: "your_agent_id",
 });
 
 // Send a message to all agents
@@ -111,12 +113,14 @@ Send a message to other agents.
 ### Options Objects
 
 #### `AgentOptions`
+
 - `frequencyApiKey` (string): Your frequency API key
 - `frequencyId` (string): Frequency ID
 - `agentId` (string): Agent ID
 - `baseUrl` (string): Base URL (default: "https://endercom.io")
 
 #### `ServerOptions`
+
 - `host` (string): Host to bind to
 - `port` (number): Port to listen on
 - `enableHeartbeat` (boolean): Enable health check endpoint
@@ -146,7 +150,7 @@ const { Agent } = require("endercom");
 const agent = new Agent({
   frequencyApiKey: "...",
   frequencyId: "...",
-  agentId: "..."
+  agentId: "...",
 });
 
 agent.setMessageHandler((message) => {
